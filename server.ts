@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
@@ -72,7 +73,8 @@ db.exec(`
 const initSettings = db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
 initSettings.run("group_id", "");
 initSettings.run("morning_time", "07:30");
-initSettings.run("afternoon_time", "16:30");
+initSettings.run("afternoon_time", "16:00");
+initSettings.run("afternoon_time_friday", "16:30");
 initSettings.run("morning_msg", "⏰ Reminder Presensi\nSelamat pagi, jangan lupa melakukan presensi masuk sebelum jam 08.00\nTerima kasih");
 initSettings.run("afternoon_msg", "⏰ Reminder Presensi\nJangan lupa melakukan presensi pulang sebelum jam 17.00\nTerima kasih");
 initSettings.run("last_detected_group", "");
@@ -229,7 +231,8 @@ async function connectToWhatsApp() {
 function getNextReminder() {
   const tz = getSetting("timezone")?.value || "Asia/Jakarta";
   const morningTime = getSetting("morning_time")?.value || "07:30";
-  const afternoonTime = getSetting("afternoon_time")?.value || "16:30";
+  const afternoonTimeDefault = getSetting("afternoon_time")?.value || "16:00";
+  const afternoonTimeFriday = getSetting("afternoon_time_friday")?.value || "16:30";
   
   const now = dayjs().tz(tz);
   let checkDay = now;
@@ -238,15 +241,16 @@ function getNextReminder() {
     const dateStr = checkDay.format("YYYY-MM-DD");
     const record = db.prepare("SELECT is_workday FROM calendar WHERE date = ?").get(dateStr) as { is_workday: number } | undefined;
     
+    const dayOfWeek = checkDay.day();
     let isWorkday: boolean;
     if (record) {
       isWorkday = record.is_workday === 1;
     } else {
-      const dayOfWeek = checkDay.day();
       isWorkday = dayOfWeek !== 0 && dayOfWeek !== 6;
     }
 
     if (isWorkday) {
+      const afternoonTime = dayOfWeek === 5 ? afternoonTimeFriday : afternoonTimeDefault;
       const schedules = [
         { time: morningTime, type: "Pagi" },
         { time: afternoonTime, type: "Sore" }
@@ -350,9 +354,10 @@ function startScheduler() {
     const currentTz = getSetting("timezone")?.value || "Asia/Jakarta";
     const now = dayjs().tz(currentTz);
     const nowTime = now.format("HH:mm");
+    const isFriday = now.day() === 5;
     
     const morningTime = getSetting("morning_time")?.value;
-    const afternoonTime = getSetting("afternoon_time")?.value;
+    const afternoonTime = isFriday ? getSetting("afternoon_time_friday")?.value : getSetting("afternoon_time")?.value;
 
     if (nowTime === morningTime) {
       console.log(`Triggering morning reminder at ${nowTime}`);
@@ -444,6 +449,7 @@ async function startServer() {
         group_id: getSetting("group_id")?.value,
         morning_time: getSetting("morning_time")?.value,
         afternoon_time: getSetting("afternoon_time")?.value,
+        afternoon_time_friday: getSetting("afternoon_time_friday")?.value,
         morning_msg: getSetting("morning_msg")?.value,
         afternoon_msg: getSetting("afternoon_msg")?.value,
         last_detected_group: getSetting("last_detected_group")?.value,
@@ -550,14 +556,16 @@ async function startServer() {
 
   // Update settings
   app.post("/api/settings", (req, res) => {
-    const { group_id, morning_time, afternoon_time, morning_msg, afternoon_msg, daily_quote, quote_date } = req.body;
+    const { group_id, morning_time, afternoon_time, afternoon_time_friday, morning_msg, afternoon_msg, daily_quote, quote_date, timezone } = req.body;
     if (group_id !== undefined) setSetting("group_id", group_id);
     if (morning_time !== undefined) setSetting("morning_time", morning_time);
     if (afternoon_time !== undefined) setSetting("afternoon_time", afternoon_time);
+    if (afternoon_time_friday !== undefined) setSetting("afternoon_time_friday", afternoon_time_friday);
     if (morning_msg !== undefined) setSetting("morning_msg", morning_msg);
     if (afternoon_msg !== undefined) setSetting("afternoon_msg", afternoon_msg);
     if (daily_quote !== undefined) setSetting("daily_quote", daily_quote);
     if (quote_date !== undefined) setSetting("quote_date", quote_date);
+    if (timezone !== undefined) setSetting("timezone", timezone);
     res.json({ success: true });
   });
 

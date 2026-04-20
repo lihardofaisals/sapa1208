@@ -49,6 +49,7 @@ interface SettingState {
   group_id: string;
   morning_time: string;
   afternoon_time: string;
+  afternoon_time_friday: string;
   morning_msg: string;
   afternoon_msg: string;
   last_detected_group?: string;
@@ -716,7 +717,7 @@ export default function App() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-text-muted uppercase tracking-widest">Pagi</label>
+                        <label className="text-xs font-bold text-text-muted uppercase tracking-widest">Pagi (Sen-Jum)</label>
                         <input 
                           type="time" 
                           value={settings?.morning_time || ""} 
@@ -725,13 +726,29 @@ export default function App() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-text-muted uppercase tracking-widest">Sore</label>
+                        <label className="text-xs font-bold text-text-muted uppercase tracking-widest">Sore (Sen-Kam)</label>
                         <input 
                           type="time" 
                           value={settings?.afternoon_time || ""} 
                           onChange={(e) => setSettings(s => s ? {...s, afternoon_time: e.target.value} : null)}
                           className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-brand outline-none"
                         />
+                      </div>
+                      <div className="space-y-2 col-span-2">
+                        <label className="text-xs font-bold text-text-muted uppercase tracking-widest text-brand">Sore Khusus (Jumat)</label>
+                        <div className="flex gap-4 items-center">
+                           <input 
+                            type="time" 
+                            value={settings?.afternoon_time_friday || ""} 
+                            onChange={(e) => setSettings(s => s ? {...s, afternoon_time_friday: e.target.value} : null)}
+                            className="flex-1 bg-bg border-2 border-brand/20 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-brand outline-none font-bold text-brand"
+                          />
+                          <div className="bg-brand/5 p-3 rounded-xl border border-brand/20 flex-1">
+                             <p className="text-[10px] text-brand/80 leading-tight">
+                               Sistem akan otomatis menggunakan waktu ini khusus untuk hari Jumat sesuai instruksi.
+                             </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </section>
