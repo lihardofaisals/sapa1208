@@ -1,0 +1,6 @@
+{
+  "name": "SAPA - BPS Asahan",
+  "description": "Sistem Alarm Presensi BPS Asahan (SAPA) - Bot pengingat otomatis untuk kehadiran pegawai BPS Kabupaten Asahan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
